@@ -1,6 +1,9 @@
+import datetime
 import logging
 
 from django.core.management import BaseCommand, CommandError
+from django.db.models import Q
+from django.utils import timezone as tz
 from django.utils.translation import gettext as _
 from taxonomy.models import CourseSkills
 
@@ -81,7 +84,13 @@ class Command(BaseCommand):
         if kwargs['uuids']:
             courses = Course.objects.filter(uuid__in=kwargs['uuids']).all()
         else:
-            courses = all_courses
+            from_date = tz.now() - datetime.timedelta(days=10)
+            courses = all_courses.filter(Q(created__gt=from_date) | Q(modified__gt=from_date))
+        logger.info(
+            '[UPDATE_COURSE_RECOMMENDATIONS] Updating {course_count} courses'.format(
+                course_count=courses.count()
+            )
+        )
         failures = set()
         recommendation_object_chunks = []
         for course in courses:
